@@ -1,0 +1,44 @@
+{
+  "validationMessages": {
+    "emptyComment": "Comment cannot be empty",
+    "longComment": "Comment exceeds maximum length",
+    "specialCharacters": "Comment contains invalid characters"
+  },
+  "characterLimits": {
+    "minLength": 1,
+    "maxLength": 1000,
+    "warningLength": 800
+  },
+  "userRoles": {
+    "auditor": {
+      "role": "Auditor",
+      "canAddInternal": true,
+      "canAddExternal": true,
+      "canViewInternal": true,
+      "canViewExternal": true
+    },
+    "manager": {
+      "role": "Manager",
+      "canAddInternal": true,
+      "canAddExternal": true,
+      "canViewInternal": true,
+      "canViewExternal": true
+    },
+    "externalAuditor": {
+      "role": "External Auditor",
+      "canAddInternal": false,
+      "canAddExternal": true,
+      "canViewInternal": false,
+      "canViewExternal": true
+    }
+  },
+  "navigationPaths": {
+    "globalSearch": "Global Search",
+    "toDos": "To-dos",
+    "manageClaim": "Manage Claim"
+  },
+  "commentVisibility": {
+    "internal": "INTERNALLY VISIBLE",
+    "external": "EXTERNALLY VISIBLE"
+  }
+}

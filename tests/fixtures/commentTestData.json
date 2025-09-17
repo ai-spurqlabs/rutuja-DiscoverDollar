@@ -1,0 +1,28 @@
+{
+  "internalComment": {
+    "content": "This is an internal comment for testing purposes",
+    "visibility": "INTERNALLY VISIBLE",
+    "expectedVisibility": ["Auditor", "Manager"]
+  },
+  "externalComment": {
+    "content": "This is an external comment visible to all users",
+    "visibility": "EXTERNALLY VISIBLE",
+    "expectedVisibility": ["Auditor", "Manager", "External Auditor"]
+  },
+  "longComment": {
+    "content": "This is a very long comment that exceeds the normal character limit for testing validation. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+    "visibility": "EXTERNALLY VISIBLE"
+  },
+  "emptyComment": {
+    "content": "",
+    "visibility": "INTERNALLY VISIBLE"
+  },
+  "specialCharactersComment": {
+    "content": "Comment with special characters: @#$%^&*()_+-=[]{}|;:,.<>?",
+    "visibility": "EXTERNALLY VISIBLE"
+  },
+  "multilineComment": {
+    "content": "Line 1: First line of comment\nLine 2: Second line of comment\nLine 3: Third line of comment",
+    "visibility": "INTERNALLY VISIBLE"
+  }
+}
