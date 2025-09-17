@@ -123,6 +123,7 @@ strategy:
 ### 📋 Required GitHub Secrets
 
 ```bash
+
 # Application Configuration
 CANTIRE_STAGE_URL=https://cantire-stage.discoverdollar.org
 
