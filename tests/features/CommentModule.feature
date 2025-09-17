@@ -58,7 +58,6 @@ Feature: Comment Module Functionality
     Then Comments section should be displayed
     And The comment "<comment_text>" should be visible in the comments section
     And User should be able to view comments made by other roles
-
     Examples:
       | comment_text                  |
       | Test internal comment by Auditor |
