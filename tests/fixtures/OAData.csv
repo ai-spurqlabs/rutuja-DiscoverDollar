@@ -1,0 +1,4 @@
+Banner,Claim Batch,Audit Year,Claim Create Date,Legacy Vendor ID,Peoplesoft ID,Vendor Name,CBM ID,CBM Name,Claim Type,VAD Prefix,Program code,Currency,Gross Amount,Adjustment,Net Amount,Conversion Rate,Amount in CAD,Claim Description,Contract Number,Contract Date,Source,O&A Description
+CTR,11,2022,,1111,1111111111,SET THE BUBBLES FREE LTD.,111,Peter Hronis,Over and Above,VAD1,SAA,CAD,90000,0,90000,1,90000,Test,,7/4/2022,Email,A
+CTR,11,2022,,1111,1111111111,PETCO ANIMAL,111,Joshua Robinson,Over and Above,VAD2,SAA,CAD,15133,0,15133,1,15133,Test,,7/4/2022,Email,A
+CTR,11,2022,,1111,1111111111,WORLD KITCHEN INC.,111,Laura Allen,Over and Above,VAD3,SAA,USD,5000,0,5000,1.33,6650,Test,,7/4/2022,Email,A
