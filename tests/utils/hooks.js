@@ -146,10 +146,38 @@ class CustomWorld {
 
 setWorldConstructor(CustomWorld);
 
-BeforeAll(async function () {
-  browser = await chromium.launch({ headless: process.env.HEADLESS === '1', channel: 'msedge' });
-  errorReporter = new ErrorReporter();
-  globalThis.errorReporter = errorReporter;
+BeforeAll({ timeout: 30000 }, async function () {
+  console.log('Launching browser in BeforeAll hook...');
+  console.log('HEADLESS environment variable:', process.env.HEADLESS);
+  console.log('CI environment variable:', process.env.CI);
+
+  try {
+    // Use chromium without channel specification for better CI compatibility
+    const headless = process.env.HEADLESS === '1';
+    console.log('Browser headless mode:', headless);
+
+    browser = await chromium.launch({
+      headless: headless,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process', // Added for CI stability
+        '--disable-gpu' // Added for CI stability
+      ]
+    });
+
+    console.log('Browser launched successfully');
+    errorReporter = new ErrorReporter();
+    globalThis.errorReporter = errorReporter;
+    console.log('BeforeAll hook completed successfully');
+  } catch (error) {
+    console.error('Failed to launch browser in BeforeAll hook:', error.message);
+    throw error;
+  }
 });
 
 AfterAll(async function () {
