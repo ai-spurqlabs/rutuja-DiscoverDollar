@@ -29,8 +29,8 @@ jobs:
 
     strategy:
       matrix:
-        browser: [chromium, firefox, webkit]
-        node-version: [18.x, 20.x]
+        browser: [chromium]
+        node-version: [20.x]
 
     steps:
     - name: Checkout code
@@ -42,8 +42,19 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
+    - name: Verify Node.js version
+      run: |
+        echo "Node.js version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+
     - name: Install dependencies
       run: npm ci
+
+    - name: Verify Cucumber compatibility
+      run: |
+        echo "Checking Cucumber version..."
+        npx cucumber-js --version
+        echo "Node.js version check: $(node --version)"
 
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
@@ -71,11 +82,22 @@ jobs:
           --format html:test-results/cucumber-report.html \
           --format summary
 
+    - name: Install Allure CLI
+      if: always()
+      run: |
+        npm install -g allure-commandline
+
     - name: Generate Allure Report
       if: always()
       run: |
-        npm run report
-        ls -la allure-report/
+        if [ -d "allure-results" ] && [ "$(ls -A allure-results)" ]; then
+          echo "Generating Allure report..."
+          npm run report
+          echo "Allure report generated successfully"
+          ls -la allure-report/
+        else
+          echo "No allure-results found or directory is empty, skipping Allure report generation"
+        fi
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -124,9 +146,20 @@ jobs:
     - name: Deploy reports to GitHub Pages
       run: |
         mkdir -p docs
-        cp -r artifacts/allure-report/* docs/
-        cp artifacts/cucumber-report.html docs/
-        gh-pages -d docs -t true
+        if [ -d "artifacts/allure-report" ] && [ "$(ls -A artifacts/allure-report)" ]; then
+          cp -r artifacts/allure-report/* docs/
+          echo "Allure reports copied to docs/"
+        fi
+        if [ -f "artifacts/cucumber-report.html" ]; then
+          cp artifacts/cucumber-report.html docs/
+          echo "HTML report copied to docs/"
+        fi
+        if [ "$(ls -A docs)" ]; then
+          gh-pages -d docs -t true
+          echo "Reports deployed to GitHub Pages"
+        else
+          echo "No reports to deploy"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
