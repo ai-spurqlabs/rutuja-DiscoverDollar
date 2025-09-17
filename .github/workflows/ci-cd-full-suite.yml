@@ -1,14 +1,20 @@
 name: CI/CD - Full Test Suite
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  # Only run on manual dispatch or schedule - NOT on regular pushes
   schedule:
     # Run full suite every weekday at 9 AM UTC
     - cron: '0 9 * * 1-5'
   workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'comment-module-only'
+        type: choice
+        options:
+        - comment-module-only
+        - full
 jobs:
   test-full-suite:
     runs-on: ubuntu-latest
@@ -37,7 +43,31 @@ jobs:
     - name: Create test-results directory
       run: mkdir -p test-results
 
-    - name: Run full test suite
+    - name: Determine test files to run
+      id: test-files
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          case "${{ github.event.inputs.test_suite }}" in
+            "comment-module-only")
+              echo "test_files=tests/features/CommentModule.feature" >> $GITHUB_OUTPUT
+              echo "Selected: Comment Module only"
+              ;;
+            "full")
+              echo "test_files=tests/features/*.feature" >> $GITHUB_OUTPUT
+              echo "Selected: Full test suite"
+              ;;
+            *)
+              echo "test_files=tests/features/CommentModule.feature" >> $GITHUB_OUTPUT
+              echo "Default: Comment Module only"
+              ;;
+          esac
+        else
+          # For scheduled runs, run full suite
+          echo "test_files=tests/features/*.feature" >> $GITHUB_OUTPUT
+          echo "Scheduled run: Full test suite"
+        fi
+
+    - name: Run test suite
       env:
         Cantire_Stage_URL: ${{ secrets.CANTIRE_STAGE_URL }}
         Audit_Reviewer: ${{ secrets.AUDIT_REVIEWER }}
@@ -52,7 +82,8 @@ jobs:
         REAL_LOGIN: 1
         HEADLESS: 1
       run: |
-        npx cucumber-js \
+        echo "Running tests: ${{ steps.test-files.outputs.test_files }}"
+        npx cucumber-js ${{ steps.test-files.outputs.test_files }} \
           --format json:test-results/cucumber-results.json \
           --format html:test-results/cucumber-report.html \
           --format summary
