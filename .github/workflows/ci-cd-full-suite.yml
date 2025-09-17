@@ -1,0 +1,125 @@
+name: CI/CD - Full Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run full suite every weekday at 9 AM UTC
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  test-full-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      matrix:
+        browser: [chromium]
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+
+    - name: Create test-results directory
+      run: mkdir -p test-results
+
+    - name: Run full test suite
+      env:
+        Cantire_Stage_URL: ${{ secrets.CANTIRE_STAGE_URL }}
+        Audit_Reviewer: ${{ secrets.AUDIT_REVIEWER }}
+        AR_Password: ${{ secrets.AR_PASSWORD }}
+        AR_SecretKey: ${{ secrets.AR_SECRET_KEY }}
+        Auditor: ${{ secrets.AUDITOR }}
+        A_Password: ${{ secrets.A_PASSWORD }}
+        A_SecretKey: ${{ secrets.A_SECRET_KEY }}
+        Audit_Manager: ${{ secrets.AUDIT_MANAGER }}
+        AM_Password: ${{ secrets.AM_PASSWORD }}
+        AM_SecretKey: ${{ secrets.AM_SECRET_KEY }}
+        REAL_LOGIN: 1
+        HEADLESS: 1
+      run: |
+        npx cucumber-js \
+          --format json:test-results/cucumber-results.json \
+          --format html:test-results/cucumber-report.html \
+          --format summary
+
+    - name: Generate Allure Report
+      if: always()
+      run: |
+        npm run report
+        ls -la allure-report/
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: full-test-suite-results-${{ matrix.browser }}-${{ matrix.node-version }}
+        path: |
+          test-results/
+          allure-results/
+          allure-report/
+          cucumber-report.html
+        retention-days: 30
+
+    - name: Comment test results on PR
+      uses: dorny/test-reporter@v1
+      if: always() && github.event_name == 'pull_request'
+      with:
+        name: Full Test Suite Results (${{ matrix.browser }}, Node ${{ matrix.node-version }})
+        path: 'test-results/cucumber-results.json'
+        reporter: java-junit
+        fail-on-error: false
+
+  performance-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+
+    - name: Run performance tests
+      env:
+        Cantire_Stage_URL: ${{ secrets.CANTIRE_STAGE_URL }}
+        Audit_Reviewer: ${{ secrets.AUDIT_REVIEWER }}
+        AR_Password: ${{ secrets.AR_PASSWORD }}
+        AR_SecretKey: ${{ secrets.AR_SECRET_KEY }}
+        REAL_LOGIN: 1
+        HEADLESS: 1
+      run: |
+        echo "Running performance tests..."
+        # Add performance test commands here
+        npx cucumber-js tests/features/CommentModule.feature --tags @performance || true
+
+    - name: Generate performance report
+      run: |
+        echo "Performance test completed"
+        # Add performance report generation here

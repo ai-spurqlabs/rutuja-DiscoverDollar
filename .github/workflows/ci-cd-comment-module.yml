@@ -1,0 +1,143 @@
+name: CI/CD - Comment Module Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'tests/features/CommentModule.feature'
+      - 'tests/step_definitions/CommentModule*.js'
+      - 'tests/pages/CommentModule*.js'
+      - 'tests/locators/commentModuleLocators.js'
+      - 'package.json'
+      - 'playwright.config.js'
+      - 'cucumber.cjs'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'tests/features/CommentModule.feature'
+      - 'tests/step_definitions/CommentModule*.js'
+      - 'tests/pages/CommentModule*.js'
+      - 'tests/locators/commentModuleLocators.js'
+      - 'package.json'
+      - 'playwright.config.js'
+      - 'cucumber.cjs'
+
+jobs:
+  test-comment-module:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+
+    - name: Create test-results directory
+      run: mkdir -p test-results
+
+    - name: Run Comment Module tests
+      env:
+        Cantire_Stage_URL: ${{ secrets.CANTIRE_STAGE_URL }}
+        Audit_Reviewer: ${{ secrets.AUDIT_REVIEWER }}
+        AR_Password: ${{ secrets.AR_PASSWORD }}
+        AR_SecretKey: ${{ secrets.AR_SECRET_KEY }}
+        Auditor: ${{ secrets.AUDITOR }}
+        A_Password: ${{ secrets.A_PASSWORD }}
+        A_SecretKey: ${{ secrets.A_SECRET_KEY }}
+        Audit_Manager: ${{ secrets.AUDIT_MANAGER }}
+        AM_Password: ${{ secrets.AM_PASSWORD }}
+        AM_SecretKey: ${{ secrets.AM_SECRET_KEY }}
+        REAL_LOGIN: 1
+        HEADLESS: 1
+      run: |
+        npx cucumber-js tests/features/CommentModule.feature \
+          --format json:test-results/cucumber-results.json \
+          --format html:test-results/cucumber-report.html \
+          --format summary
+
+    - name: Generate Allure Report
+      if: always()
+      run: |
+        npm run report
+        ls -la allure-report/
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: comment-module-test-results-${{ matrix.browser }}-${{ matrix.node-version }}
+        path: |
+          test-results/
+          allure-results/
+          allure-report/
+          cucumber-report.html
+        retention-days: 30
+
+    - name: Comment test results on PR
+      uses: dorny/test-reporter@v1
+      if: always() && github.event_name == 'pull_request'
+      with:
+        name: Comment Module Tests Results (${{ matrix.browser }}, Node ${{ matrix.node-version }})
+        path: 'test-results/cucumber-results.json'
+        reporter: java-junit
+        fail-on-error: false
+
+  deploy-reports:
+    needs: test-comment-module
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download test artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: comment-module-test-results-chromium-20.x
+        path: ./artifacts
+
+    - name: Setup Node.js for deployment
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+
+    - name: Install gh-pages dependencies
+      run: npm install -g gh-pages
+
+    - name: Deploy reports to GitHub Pages
+      run: |
+        mkdir -p docs
+        cp -r artifacts/allure-report/* docs/
+        cp artifacts/cucumber-report.html docs/
+        gh-pages -d docs -t true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    needs: [test-comment-module, deploy-reports]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Comment Module CI/CD failed. Check the logs for details."
+        # Add notification logic here (Slack, Teams, etc.)
